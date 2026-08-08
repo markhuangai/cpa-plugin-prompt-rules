@@ -31,8 +31,8 @@ func TestPromptABIAdvertisesConfigurationResource(t *testing.T) {
 	if !registrationEnvelope.OK || !registration.Capabilities.RequestInterceptor || !registration.Capabilities.ManagementAPI {
 		t.Fatalf("registration = %#v", registration)
 	}
-	if registration.Metadata.Version != "0.2.0" {
-		t.Fatalf("metadata version = %q, want 0.2.0", registration.Metadata.Version)
+	if registration.Metadata.Version != "0.2.1" {
+		t.Fatalf("metadata version = %q, want 0.2.1", registration.Metadata.Version)
 	}
 
 	raw, err = handlePromptABIMethod(t.Context(), pluginabi.MethodManagementRegister, nil)
@@ -55,7 +55,7 @@ func TestPromptABIAdvertisesConfigurationResource(t *testing.T) {
 	}
 }
 
-func TestPromptManagementDashboardUsesAuthenticatedConfigAPI(t *testing.T) {
+func TestPromptManagementDashboardReusesCPAMCSessionAndTheme(t *testing.T) {
 	request, err := json.Marshal(managementRPCRequest{ManagementRequest: pluginapi.ManagementRequest{
 		Method: http.MethodGet,
 		Path:   promptDashboardPath,
@@ -84,13 +84,19 @@ func TestPromptManagementDashboardUsesAuthenticatedConfigAPI(t *testing.T) {
 		"/v0/management/plugins/prompt-rules/config",
 		"/v0/management/plugins/prompt-rules/validate",
 		"Authorization:'Bearer '+key",
+		"'cli-proxy-auth'",
+		"CPA_STORAGE_PREFIX='enc::v1::'",
+		":root[data-host-theme=\"dark\"]",
+		"new MutationObserver(refresh)",
+		"class=\"auth-dock\" aria-labelledby=\"auth-title\" hidden",
+		"if(managementKey())loadConfiguration()",
 		"data-action=\"add-model\"",
 	} {
 		if !strings.Contains(page, required) {
 			t.Fatalf("dashboard missing %q", required)
 		}
 	}
-	for _, forbidden := range []string{"localStorage", "sessionStorage", "http://", "https://", "innerHTML"} {
+	for _, forbidden := range []string{"http://", "https://", "innerHTML"} {
 		if strings.Contains(page, forbidden) {
 			t.Fatalf("dashboard contains forbidden text %q", forbidden)
 		}

@@ -7,7 +7,7 @@ const (
 	pluginName = "Prompt Rules"
 )
 
-var pluginVersion = "0.2.0"
+var pluginVersion = "0.2.1"
 
 type promptRulesPlugin struct {
 	config promptConfig

@@ -59,7 +59,7 @@ plugins:
 
 ### Configuration UI
 
-Version `0.2.0` registers a **Prompt Rules** page in CPA's management frontend. Open the Plugins section, select **Prompt Rules**, enter the CPA management key, and choose **Load configuration**. The page provides typed controls for rule order, prompt target, action, injection position, model wildcards, and source protocols.
+The plugin registers a **Prompt Rules** page in CPA's management frontend. Open the Plugins section and select **Prompt Rules**. When CPAMC has a persisted authenticated session, the page reuses its management key and loads configuration automatically. It also follows CPAMC's selected light, white, or dark theme and updates when that selection changes. The page provides typed controls for rule order, prompt target, action, injection position, model wildcards, and source protocols.
 
 **Save changes** validates the complete rule set with the plugin's Go configuration parser before applying a shallow patch through CPA. The patch updates `enabled`, `priority`, and `rules` without replacing plugin-store metadata or unrelated config fields. The same page is available directly at:
 
@@ -67,7 +67,7 @@ Version `0.2.0` registers a **Prompt Rules** page in CPA's management frontend. 
 /v0/resource/plugins/prompt-rules/config
 ```
 
-The dashboard HTML is a public plugin resource so CPA can embed it in the frontend. Reading or changing configuration still requires the management key. The page keeps that key only in memory and does not use browser storage. CPA's Management API must be enabled and reachable from the browser.
+The dashboard HTML is a public plugin resource so CPA can embed it in the frontend. Reading or changing configuration still requires the management key. The page reads CPAMC's persisted `cli-proxy-auth` value from same-origin browser storage; it does not change CPAMC's stored session. If **Remember password** is disabled, the persisted session has no key, so the page reveals a fallback key field. A fallback key is cached only in that tab's session storage and is removed when CPA rejects it. CPA's Management API must be enabled and reachable from the browser.
 
 ### Rule fields
 
@@ -168,14 +168,14 @@ curl -fsS http://127.0.0.1:8317/v0/management/plugins \
 
 ## Publishing And Plugin Store Registration
 
-The release workflow accepts tags such as `v0.2.0` and builds these CPA Plugin Store assets:
+The release workflow accepts tags such as `v0.2.1` and builds these CPA Plugin Store assets:
 
 ```text
-prompt-rules_0.2.0_linux_amd64.zip
-prompt-rules_0.2.0_linux_arm64.zip
-prompt-rules_0.2.0_darwin_amd64.zip
-prompt-rules_0.2.0_darwin_arm64.zip
-prompt-rules_0.2.0_windows_amd64.zip
+prompt-rules_0.2.1_linux_amd64.zip
+prompt-rules_0.2.1_linux_arm64.zip
+prompt-rules_0.2.1_darwin_amd64.zip
+prompt-rules_0.2.1_darwin_arm64.zip
+prompt-rules_0.2.1_windows_amd64.zip
 checksums.txt
 ```
 
