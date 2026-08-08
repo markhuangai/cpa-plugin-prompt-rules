@@ -1,4 +1,4 @@
-module github.com/Z-M-Huang/cpa-plugin-prompt-rules
+module github.com/markhuangai/cpa-plugin-prompt-rules
 
 go 1.26.0
 

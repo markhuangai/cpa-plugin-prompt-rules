@@ -1,7 +1,7 @@
 # CPA Prompt Rules
 
-[![test](https://github.com/Z-M-Huang/cpa-plugin-prompt-rules/actions/workflows/test.yml/badge.svg)](https://github.com/Z-M-Huang/cpa-plugin-prompt-rules/actions/workflows/test.yml)
-[![release](https://github.com/Z-M-Huang/cpa-plugin-prompt-rules/actions/workflows/release.yml/badge.svg)](https://github.com/Z-M-Huang/cpa-plugin-prompt-rules/actions/workflows/release.yml)
+[![test](https://github.com/markhuangai/cpa-plugin-prompt-rules/actions/workflows/test.yml/badge.svg)](https://github.com/markhuangai/cpa-plugin-prompt-rules/actions/workflows/test.yml)
+[![release](https://github.com/markhuangai/cpa-plugin-prompt-rules/actions/workflows/release.yml/badge.svg)](https://github.com/markhuangai/cpa-plugin-prompt-rules/actions/workflows/release.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 CPA Prompt Rules is a native [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) request-interceptor plugin. It ports the prompt injection and stripping behavior from `Z-M-Huang/CLIProxyAPI` into a standalone plugin that can run on upstream CPA.
@@ -171,7 +171,7 @@ Each zip contains exactly one root-level library named `prompt-rules.so`, `promp
 
 To register the plugin publicly:
 
-1. Push this repository to `https://github.com/Z-M-Huang/cpa-plugin-prompt-rules`.
+1. Push this repository to `https://github.com/markhuangai/cpa-plugin-prompt-rules`.
 2. Create and push a `v<major>.<minor>.<patch>` tag. Confirm the GitHub release contains all five zips plus `checksums.txt`.
 3. Fork `router-for-me/CLIProxyAPI-Plugins-Store` and add this object to `registry.json`:
 
@@ -180,9 +180,9 @@ To register the plugin publicly:
   "id": "prompt-rules",
   "name": "Prompt Rules",
   "description": "Injects or strips system and user prompt text before provider translation, with model and protocol scoping.",
-  "author": "Z-M-Huang",
-  "repository": "https://github.com/Z-M-Huang/cpa-plugin-prompt-rules",
-  "homepage": "https://github.com/Z-M-Huang/cpa-plugin-prompt-rules",
+  "author": "markhuangai",
+  "repository": "https://github.com/markhuangai/cpa-plugin-prompt-rules",
+  "homepage": "https://github.com/markhuangai/cpa-plugin-prompt-rules",
   "license": "MIT",
   "tags": ["Interceptor", "Prompt"]
 }

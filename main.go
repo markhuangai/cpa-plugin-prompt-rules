@@ -24,8 +24,8 @@ func buildPlugin(configYAML []byte) (*promptRulesPlugin, pluginapi.Metadata, err
 	metadata := pluginapi.Metadata{
 		Name:             pluginName,
 		Version:          pluginVersion,
-		Author:           "Z-M-Huang",
-		GitHubRepository: "https://github.com/Z-M-Huang/cpa-plugin-prompt-rules",
+		Author:           "markhuangai",
+		GitHubRepository: "https://github.com/markhuangai/cpa-plugin-prompt-rules",
 		ConfigFields: []pluginapi.ConfigField{
 			{Name: "rules", Type: pluginapi.ConfigFieldTypeArray, Description: "Ordered prompt injection and stripping rules. Strip rules run before inject rules."},
 		},
