@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -95,7 +96,7 @@ api-keys: ["local-test-key"]
 request-retry: 0
 remote-management:
   allow-remote: false
-  secret-key: ""
+  secret-key: "local-management-key"
   disable-control-panel: true
 plugins:
   enabled: true
@@ -128,6 +129,7 @@ openai-compatibility:
 
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
 	logs := startSmokeCPA(t, cpaBinary, configPath, baseURL)
+	verifyPromptManagementUI(t, baseURL, logs)
 	response := postSmokeChat(t, baseURL, "working-model", []map[string]string{
 		{"role": "system", "content": "base"},
 		{"role": "user", "content": "hello"},
@@ -140,6 +142,97 @@ openai-compatibility:
 	message, _ := choice["message"].(map[string]any)
 	if content, _ := message["content"].(string); content != "base|PLUGIN" {
 		t.Fatalf("assistant content = %q, want %q; response = %#v\n%s", content, "base|PLUGIN", response, logs.String())
+	}
+}
+
+func verifyPromptManagementUI(t *testing.T, baseURL string, logs *smokeSyncBuffer) {
+	t.Helper()
+	client := &http.Client{Timeout: 5 * time.Second}
+	request, err := http.NewRequest(http.MethodGet, baseURL+"/v0/management/plugins", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Authorization", "Bearer local-management-key")
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("list plugins: %v\n%s", err, logs.String())
+	}
+	defer response.Body.Close()
+	var plugins struct {
+		Plugins []struct {
+			ID    string `json:"id"`
+			Menus []struct {
+				Path string `json:"path"`
+				Menu string `json:"menu"`
+			} `json:"menus"`
+		} `json:"plugins"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&plugins); err != nil {
+		t.Fatalf("decode plugin list: %v", err)
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("plugin list status = %s\n%s", response.Status, logs.String())
+	}
+	resourcePath := ""
+	for _, plugin := range plugins.Plugins {
+		if plugin.ID != pluginID {
+			continue
+		}
+		for _, menu := range plugin.Menus {
+			if menu.Menu == pluginName {
+				resourcePath = menu.Path
+			}
+		}
+	}
+	if resourcePath != promptDashboardPath {
+		t.Fatalf("dashboard path = %q, want %q; plugins=%#v\n%s", resourcePath, promptDashboardPath, plugins, logs.String())
+	}
+
+	resourceResponse, err := client.Get(baseURL + resourcePath)
+	if err != nil {
+		t.Fatalf("get dashboard: %v", err)
+	}
+	defer resourceResponse.Body.Close()
+	resourceBody, err := io.ReadAll(resourceResponse.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resourceResponse.StatusCode != http.StatusOK || !strings.Contains(string(resourceBody), "<title>Prompt Rules</title>") {
+		t.Fatalf("dashboard status=%s body=%q", resourceResponse.Status, resourceBody)
+	}
+
+	validation := []byte(`{"enabled":true,"rules":[{"name":"smoke","enabled":true,"target":"system","action":"inject","content":"ok"}]}`)
+	unauthenticatedRequest, err := http.NewRequest(http.MethodPost, baseURL+promptValidationPath, bytes.NewReader(validation))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unauthenticatedRequest.Header.Set("Content-Type", "application/json")
+	unauthenticatedResponse, err := client.Do(unauthenticatedRequest)
+	if err != nil {
+		t.Fatalf("validate dashboard config without authentication: %v", err)
+	}
+	unauthenticatedResponse.Body.Close()
+	if unauthenticatedResponse.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated validation status=%s, want 401", unauthenticatedResponse.Status)
+	}
+
+	validationRequest, err := http.NewRequest(http.MethodPost, baseURL+promptValidationPath, bytes.NewReader(validation))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validationRequest.Header.Set("Authorization", "Bearer local-management-key")
+	validationRequest.Header.Set("Content-Type", "application/json")
+	validationResponse, err := client.Do(validationRequest)
+	if err != nil {
+		t.Fatalf("validate dashboard config: %v", err)
+	}
+	defer validationResponse.Body.Close()
+	var validationBody map[string]any
+	if err := json.NewDecoder(validationResponse.Body).Decode(&validationBody); err != nil {
+		t.Fatal(err)
+	}
+	if validationResponse.StatusCode != http.StatusOK || validationBody["valid"] != true {
+		t.Fatalf("validation status=%s body=%#v", validationResponse.Status, validationBody)
 	}
 }
 

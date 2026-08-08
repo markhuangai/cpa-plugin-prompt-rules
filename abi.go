@@ -76,6 +76,7 @@ type abiRegistration struct {
 
 type abiCapabilities struct {
 	RequestInterceptor bool `json:"request_interceptor"`
+	ManagementAPI      bool `json:"management_api"`
 }
 
 var promptABIState = struct {
@@ -151,6 +152,16 @@ func handlePromptABIMethod(ctx context.Context, method string, request []byte) (
 	if method == pluginabi.MethodPluginRegister || method == pluginabi.MethodPluginReconfigure {
 		return registerPromptPlugin(request)
 	}
+	switch method {
+	case pluginabi.MethodManagementRegister:
+		return okEnvelope(promptManagementRegistration())
+	case pluginabi.MethodManagementHandle:
+		var rpcRequest managementRPCRequest
+		if err := json.Unmarshal(request, &rpcRequest); err != nil {
+			return nil, fmt.Errorf("decode management.handle request: %w", err)
+		}
+		return okEnvelope(handlePromptManagement(rpcRequest.ManagementRequest))
+	}
 	plugin, done, err := beginPromptCall()
 	if err != nil {
 		return nil, err
@@ -190,7 +201,7 @@ func registerPromptPlugin(raw []byte) ([]byte, error) {
 	return okEnvelope(abiRegistration{
 		SchemaVersion: registrationSchemaVersion,
 		Metadata:      metadata,
-		Capabilities:  abiCapabilities{RequestInterceptor: true},
+		Capabilities:  abiCapabilities{RequestInterceptor: true, ManagementAPI: true},
 	})
 }
 

@@ -17,11 +17,11 @@ The plugin edits the inbound protocol shape before credential selection. CPA sti
 - Run every strip rule before every inject rule.
 - Avoid duplicate injection when the same request is processed again.
 - Skip image generation, image editing, Responses compact, and nested host-model callback requests.
-- Reconfigure through CPA's generic plugin config API without restarting the process.
+- Configure ordered rules through a dedicated CPA management page or the generic plugin config API without restarting the process.
 
 ## Compatibility
 
-The module is built against `github.com/router-for-me/CLIProxyAPI/v7` v7.2.123. It advertises RPC schema v1 because it does not use the schema-v2 request-lifecycle additions. The CPA host must support native plugins and the `request_interceptor` capability.
+The module is built against `github.com/router-for-me/CLIProxyAPI/v7` v7.2.123. It advertises RPC schema v1 because it does not use the schema-v2 request-lifecycle additions. The CPA host must support native plugins and the `request_interceptor` capability. The configuration page also requires CPA's `management_api` capability and plugin resource menus.
 
 Build the plugin for the same operating system and architecture as CPA. A Go `c-shared` library is not portable across OS or CPU targets.
 
@@ -56,6 +56,18 @@ plugins:
 ```
 
 `plugins.enabled` and `plugins.configs.prompt-rules.enabled` must both be true. The library basename must be exactly `prompt-rules` with the host extension: `.so`, `.dylib`, or `.dll`.
+
+### Configuration UI
+
+Version `0.2.0` registers a **Prompt Rules** page in CPA's management frontend. Open the Plugins section, select **Prompt Rules**, enter the CPA management key, and choose **Load configuration**. The page provides typed controls for rule order, prompt target, action, injection position, model wildcards, and source protocols.
+
+**Save changes** validates the complete rule set with the plugin's Go configuration parser before applying a shallow patch through CPA. The patch updates `enabled`, `priority`, and `rules` without replacing plugin-store metadata or unrelated config fields. The same page is available directly at:
+
+```text
+/v0/resource/plugins/prompt-rules/config
+```
+
+The dashboard HTML is a public plugin resource so CPA can embed it in the frontend. Reading or changing configuration still requires the management key. The page keeps that key only in memory and does not use browser storage. CPA's Management API must be enabled and reachable from the browser.
 
 ### Rule fields
 
@@ -109,7 +121,7 @@ plugins:
 
 The plugin also accepts `prompt-rules` instead of `rules` inside its own config for a staged migration. Do not provide both keys; registration fails rather than choosing one silently.
 
-The fork-specific `/v0/management/prompt-rules` endpoints are not part of this plugin. Use CPA's generic plugin endpoints instead:
+The fork-specific `/v0/management/prompt-rules` endpoints are not part of this plugin. The configuration page uses CPA's generic plugin endpoints, which remain available for automation:
 
 ```text
 GET   /v0/management/plugins/prompt-rules/config
@@ -127,7 +139,7 @@ make check
 make build
 ```
 
-`make build` writes the host-platform library to `dist/prompt-rules.<ext>`. The default test suite covers strict config parsing, model/protocol matching, every supported request shape, strip-before-inject behavior, idempotency, skipped endpoints, and the native RPC registration path.
+`make build` writes the host-platform library to `dist/prompt-rules.<ext>`. The default test suite covers strict config parsing, model/protocol matching, every supported request shape, strip-before-inject behavior, idempotency, skipped endpoints, the management page, and the native RPC registration path.
 
 Run the opt-in black-box test against a local CPA source checkout:
 
@@ -136,13 +148,13 @@ CPA_SOURCE=../CLIProxyAPI \
   go test -tags=integration -run TestPromptRulesWithCLIProxyAPI -count=1 -v
 ```
 
-The black-box test builds CPA and the native plugin in a temporary directory, starts a local mock OpenAI-compatible provider, loads the library through CPA, sends `/v1/chat/completions`, and verifies that the mock received the injected system text. It uses no external provider credentials. The test currently runs on Linux and macOS.
+The black-box test builds CPA and the native plugin in a temporary directory, starts a local mock OpenAI-compatible provider, loads the library through CPA, verifies the Prompt Rules menu and parser-backed validation endpoint, sends `/v1/chat/completions`, and confirms that the mock received the injected system text. It uses no external provider credentials. The test currently runs on Linux and macOS.
 
 ### Manual local installation
 
 1. Run `make build` on the CPA host machine.
 2. Copy `dist/prompt-rules.so` on Linux, `dist/prompt-rules.dylib` on macOS, or `dist/prompt-rules.dll` on Windows into the configured `plugins.dir`. CPA also scans `plugins.dir/<goos>/<goarch>`.
-3. Add the `plugins.configs.prompt-rules` configuration shown above.
+3. Add `plugins.configs.prompt-rules.enabled: true`. Add rules in YAML or through the Prompt Rules management page.
 4. Start CPA with `go run ./cmd/server --config /path/to/config.yaml` or your normal CPA binary.
 5. If the Management API is enabled, verify registration:
 
@@ -156,14 +168,14 @@ curl -fsS http://127.0.0.1:8317/v0/management/plugins \
 
 ## Publishing And Plugin Store Registration
 
-The release workflow accepts tags such as `v0.1.0` and builds these CPA Plugin Store assets:
+The release workflow accepts tags such as `v0.2.0` and builds these CPA Plugin Store assets:
 
 ```text
-prompt-rules_0.1.0_linux_amd64.zip
-prompt-rules_0.1.0_linux_arm64.zip
-prompt-rules_0.1.0_darwin_amd64.zip
-prompt-rules_0.1.0_darwin_arm64.zip
-prompt-rules_0.1.0_windows_amd64.zip
+prompt-rules_0.2.0_linux_amd64.zip
+prompt-rules_0.2.0_linux_arm64.zip
+prompt-rules_0.2.0_darwin_amd64.zip
+prompt-rules_0.2.0_darwin_arm64.zip
+prompt-rules_0.2.0_windows_amd64.zip
 checksums.txt
 ```
 
@@ -192,7 +204,7 @@ To register the plugin publicly:
 
 Do not add a `version` field unless the store maintainers request it. CPA discovers the latest version from the repository's newest published `v*` release.
 
-After the registry PR is merged, install through the CPA management UI or `POST /v0/management/plugin-store/prompt-rules/install`, then set the rule configuration through the generic plugin config API.
+After the registry PR is merged, install through the CPA management UI or `POST /v0/management/plugin-store/prompt-rules/install`, then configure rules from the plugin's **Prompt Rules** page or the generic config API.
 
 ## Security And Operational Notes
 
